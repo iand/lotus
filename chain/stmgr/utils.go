@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/filecoin-project/go-state-types/big"
+	"github.com/prometheus/common/log"
 
 	"github.com/filecoin-project/go-state-types/network"
 	"github.com/filecoin-project/lotus/chain/actors/policy"
@@ -254,25 +255,6 @@ func GetSectorsForWinningPoSt(ctx context.Context, pv ffiwrapper.Verifier, sm *S
 	}
 
 	return out, nil
-}
-
-func StateMinerInfo(ctx context.Context, sm *StateManager, ts *types.TipSet, maddr address.Address) (*miner.MinerInfo, error) {
-	act, err := sm.LoadActor(ctx, maddr, ts)
-	if err != nil {
-		return nil, xerrors.Errorf("failed to load miner actor: %w", err)
-	}
-
-	mas, err := miner.Load(sm.cs.Store(ctx), act)
-	if err != nil {
-		return nil, xerrors.Errorf("failed to load miner actor state: %w", err)
-	}
-
-	mi, err := mas.Info()
-	if err != nil {
-		return nil, err
-	}
-
-	return &mi, err
 }
 
 func GetMinerSlashed(ctx context.Context, sm *StateManager, ts *types.TipSet, maddr address.Address) (bool, error) {

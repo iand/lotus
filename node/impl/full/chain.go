@@ -40,9 +40,10 @@ import (
 var log = logging.Logger("fullnode")
 
 type ChainModuleAPI interface {
-	ChainHead(context.Context) (*types.TipSet, error)
+	ChainGetMessage(ctx context.Context, mc cid.Cid) (*types.Message, error)
 	ChainGetTipSet(ctx context.Context, tsk types.TipSetKey) (*types.TipSet, error)
 	ChainGetTipSetByHeight(ctx context.Context, h abi.ChainEpoch, tsk types.TipSetKey) (*types.TipSet, error)
+	ChainHead(context.Context) (*types.TipSet, error)
 }
 
 // ChainModule provides a default implementation of ChainModuleAPI.
@@ -530,8 +531,8 @@ func (a *ChainAPI) ChainGetNode(ctx context.Context, p string) (*api.IpldObject,
 	}, nil
 }
 
-func (a *ChainAPI) ChainGetMessage(ctx context.Context, mc cid.Cid) (*types.Message, error) {
-	cm, err := a.Chain.GetCMessage(mc)
+func (m *ChainModule) ChainGetMessage(ctx context.Context, mc cid.Cid) (*types.Message, error) {
+	cm, err := m.Chain.GetCMessage(mc)
 	if err != nil {
 		return nil, err
 	}
