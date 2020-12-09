@@ -149,6 +149,8 @@ const (
 
 	SetApiEndpointKey
 
+	StatsObserverKey
+
 	_nInvokes // keep this last
 )
 
@@ -169,6 +171,7 @@ type Settings struct {
 	Online bool // Online option applied
 	Config bool // Config option applied
 	Lite   bool // Start node in "lite" mode
+	Stats  bool // Start node in "stats" mode
 }
 
 func defaults() []Option {
@@ -234,15 +237,15 @@ func libp2p() Option {
 	)
 }
 
-func isType(t repo.RepoType) func(s *Settings) bool {
+func isRepoType(t repo.RepoType) func(s *Settings) bool {
 	return func(s *Settings) bool { return s.nodeType == t }
 }
 
 // Online sets up basic libp2p node
 func Online() Option {
-	isFullOrLiteNode := func(s *Settings) bool { return s.nodeType == repo.FullNode }
 	isFullNode := func(s *Settings) bool { return s.nodeType == repo.FullNode && !s.Lite }
 	isLiteNode := func(s *Settings) bool { return s.nodeType == repo.FullNode && s.Lite }
+	isStatsNode := func(s *Settings) bool { return s.nodeType == repo.FullNode && s.Stats }
 
 	return Options(
 		// make sure that online is applied before Config.
@@ -258,7 +261,7 @@ func Online() Option {
 		Override(new(*slashfilter.SlashFilter), modules.NewSlashFilter),
 
 		// Full node or lite node
-		ApplyIf(isFullOrLiteNode,
+		ApplyIf(isRepoType(repo.FullNode),
 			// TODO: Fix offline mode
 
 			Override(new(dtypes.BootstrapPeers), modules.BuiltinBootstrap),
@@ -342,8 +345,13 @@ func Online() Option {
 			Override(HandleIncomingBlocksKey, modules.HandleIncomingBlocks),
 		),
 
+		// Stats node
+		ApplyIf(isStatsNode,
+			Override(StatsObserverKey, modules.StatsObserver),
+		),
+
 		// miner
-		ApplyIf(isType(repo.StorageMiner),
+		ApplyIf(isRepoType(repo.StorageMiner),
 			Override(new(api.Common), From(new(common.CommonAPI))),
 			Override(new(sectorstorage.StorageAuth), modules.StorageAuth),
 
@@ -563,8 +571,8 @@ func Repo(r repo.Repo) Option {
 
 			Override(new(*dtypes.APIAlg), modules.APISecret),
 
-			ApplyIf(isType(repo.FullNode), ConfigFullNode(c)),
-			ApplyIf(isType(repo.StorageMiner), ConfigStorageMiner(c)),
+			ApplyIf(isRepoType(repo.FullNode), ConfigFullNode(c)),
+			ApplyIf(isRepoType(repo.StorageMiner), ConfigStorageMiner(c)),
 		)(settings)
 	}
 }
@@ -574,6 +582,13 @@ type FullOption = Option
 func Lite(enable bool) FullOption {
 	return func(s *Settings) error {
 		s.Lite = enable
+		return nil
+	}
+}
+
+func Stats(enable bool) FullOption {
+	return func(s *Settings) error {
+		s.Stats = enable
 		return nil
 	}
 }
