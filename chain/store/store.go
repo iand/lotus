@@ -1483,9 +1483,7 @@ func (cs *ChainStore) WalkSnapshot(ctx context.Context, ts *types.TipSet, inclRe
 	for len(blocksToWalk) > 0 {
 		next := blocksToWalk[0]
 		blocksToWalk = blocksToWalk[1:]
-		if walked.Len()%1000 == 0 {
-			log.Infow("export", "walked", walked.Len())
-		}
+		log.Infow("export block", "seen", seen.Len(), "walked", walked.Len())
 		if err := walkChain(next); err != nil {
 			return xerrors.Errorf("walk chain failed: %w", err)
 		}
