@@ -54,11 +54,15 @@ import (
 
 var log = logging.Logger("chainstore")
 
-var chainHeadKey = dstore.NewKey("head")
-var blockValidationCacheKeyPrefix = dstore.NewKey("blockValidation")
+var (
+	chainHeadKey                  = dstore.NewKey("head")
+	blockValidationCacheKeyPrefix = dstore.NewKey("blockValidation")
+)
 
-var DefaultTipSetCacheSize = 8192
-var DefaultMsgMetaCacheSize = 2048
+var (
+	DefaultTipSetCacheSize  = 8192
+	DefaultMsgMetaCacheSize = 2048
+)
 
 var ErrNotifeeDone = errors.New("notifee is done and should be removed")
 
@@ -706,7 +710,6 @@ func ReorgOps(lts func(types.TipSetKey) (*types.TipSet, error), a, b *types.TipS
 	}
 
 	return leftChain, rightChain, nil
-
 }
 
 // GetHeaviestTipSet returns the current heaviest tipset known (i.e. our head).
@@ -1416,7 +1419,7 @@ func (cs *ChainStore) WalkSnapshot(ctx context.Context, ts *types.TipSet, inclRe
 
 		if currentMinHeight > b.Height {
 			currentMinHeight = b.Height
-			if currentMinHeight%builtin.EpochsInDay == 0 {
+			if currentMinHeight%100 == 0 {
 				log.Infow("export", "height", currentMinHeight)
 			}
 		}
@@ -1432,7 +1435,7 @@ func (cs *ChainStore) WalkSnapshot(ctx context.Context, ts *types.TipSet, inclRe
 			}
 		}
 
-		if b.Height > 0 {
+		if b.Height > ts.Height()-inclRecentRoots {
 			for _, p := range b.Parents {
 				blocksToWalk = append(blocksToWalk, p)
 			}
