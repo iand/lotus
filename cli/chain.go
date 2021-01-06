@@ -137,7 +137,7 @@ var chainGetBlock = &cli.Command{
 		recpts, err := api.ChainGetParentReceipts(ctx, bcid)
 		if err != nil {
 			log.Warn(err)
-			//return xerrors.Errorf("failed to get receipts: %w", err)
+			// return xerrors.Errorf("failed to get receipts: %w", err)
 		}
 
 		cblock := struct {
@@ -161,7 +161,6 @@ var chainGetBlock = &cli.Command{
 
 		fmt.Println(string(out))
 		return nil
-
 	},
 }
 
@@ -1051,9 +1050,9 @@ var chainExportCmd = &cli.Command{
 		}
 
 		rsrs := abi.ChainEpoch(cctx.Int64("recent-stateroots"))
-		if cctx.IsSet("recent-stateroots") && rsrs < build.Finality {
-			return fmt.Errorf("\"recent-stateroots\" has to be greater than %d", build.Finality)
-		}
+		// if cctx.IsSet("recent-stateroots") && rsrs < build.Finality {
+		// 	return fmt.Errorf("\"recent-stateroots\" has to be greater than %d", build.Finality)
+		// }
 
 		fi, err := os.Create(cctx.Args().First())
 		if err != nil {
