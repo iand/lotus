@@ -1332,6 +1332,10 @@ func recurseLinks(bs bstore.Blockstore, walked *cid.Set, root cid.Cid, in []cid.
 		return in, nil
 	}
 
+	if walked.Len()%1000 == 0 {
+		log.Infow("export", "walked", walked.Len())
+	}
+
 	data, err := bs.Get(root)
 	if err != nil {
 		return nil, xerrors.Errorf("recurse links get (%s) failed: %w", root, err)
@@ -1479,7 +1483,9 @@ func (cs *ChainStore) WalkSnapshot(ctx context.Context, ts *types.TipSet, inclRe
 	for len(blocksToWalk) > 0 {
 		next := blocksToWalk[0]
 		blocksToWalk = blocksToWalk[1:]
-		log.Infow("export", "seen", seen.Len())
+		if walked.Len()%1000 == 0 {
+			log.Infow("export", "walked", walked.Len())
+		}
 		if err := walkChain(next); err != nil {
 			return xerrors.Errorf("walk chain failed: %w", err)
 		}
