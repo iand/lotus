@@ -347,7 +347,7 @@ func Online() Option {
 
 		// Sentinel node
 		ApplyIf(isSentinelNode,
-			Override(new(sentinel.EventAPI), From(new(sentinel.EventAPI))),
+			Override(new(sentinel.EventAPI), From(new(sentinel.EventModule))),
 			Override(new(sentinel.SentinelAPI), From(new(sentinel.SentinelModule))),
 		),
 
