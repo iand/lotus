@@ -79,7 +79,7 @@ func (ta testActor) Exports() []interface{} {
 func (ta *testActor) Constructor(rt rt2.Runtime, params *abi.EmptyValue) *abi.EmptyValue {
 	rt.ValidateImmediateCallerAcceptAny()
 	rt.StateCreate(&testActorState{11})
-	//fmt.Println("NEW ACTOR ADDRESS IS: ", rt.Receiver())
+	// fmt.Println("NEW ACTOR ADDRESS IS: ", rt.Receiver())
 
 	return abi.Empty
 }
@@ -122,7 +122,7 @@ func TestForkHeightTriggers(t *testing.T) {
 		cg.ChainStore(), UpgradeSchedule{{
 			Network: 1,
 			Height:  testForkHeight,
-			Migration: func(ctx context.Context, sm *StateManager, cb ExecCallback,
+			Migration: func(ctx context.Context, sm *StateManager, em ExecMonitor,
 				root cid.Cid, height abi.ChainEpoch, ts *types.TipSet) (cid.Cid, error) {
 				cst := ipldcbor.NewCborStore(sm.ChainStore().Blockstore())
 
@@ -155,7 +155,8 @@ func TestForkHeightTriggers(t *testing.T) {
 				}
 
 				return st.Flush(ctx)
-			}}})
+			},
+		}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -252,10 +253,11 @@ func TestForkRefuseCall(t *testing.T) {
 			Network:   1,
 			Expensive: true,
 			Height:    testForkHeight,
-			Migration: func(ctx context.Context, sm *StateManager, cb ExecCallback,
+			Migration: func(ctx context.Context, sm *StateManager, em ExecMonitor,
 				root cid.Cid, height abi.ChainEpoch, ts *types.TipSet) (cid.Cid, error) {
 				return root, nil
-			}}})
+			},
+		}})
 	if err != nil {
 		t.Fatal(err)
 	}
