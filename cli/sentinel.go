@@ -5,7 +5,7 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
-var SentinelCmd = &cli.Command{
+var sentinelCmd = &cli.Command{
 	Name:  "sentinel",
 	Usage: "Interact with the sentinel module",
 	Subcommands: []*cli.Command{

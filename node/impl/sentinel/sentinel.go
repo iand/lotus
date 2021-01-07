@@ -10,6 +10,7 @@ import (
 	"github.com/filecoin-project/lotus/chain/events"
 	"github.com/filecoin-project/lotus/chain/stmgr"
 	"github.com/filecoin-project/lotus/chain/store"
+	"github.com/filecoin-project/lotus/node/impl/full"
 	"github.com/filecoin-project/lotus/sentinel"
 )
 
@@ -26,13 +27,19 @@ type SentinelModule struct {
 
 	StateManager *stmgr.StateManager
 	Chain        *store.ChainStore
-	Events       *events.Events
+	EventAPI     EventAPI
+}
+
+type EventAPI struct {
+	*full.ChainModule
+	*full.StateModule
 }
 
 // SentinelStartWatch starts a watcher that will be notified of new tipsets once the given confidence has been reached.
 func (s *SentinelModule) SentinelStartWatch(ctx context.Context, confidence abi.ChainEpoch) error {
 	// TODO: pass confidence
-	return s.Events.Observe(&sentinel.LoggingTipSetObserver{
+	evts := events.NewEventsWithConfidence(ctx, s.EventAPI, confidence)
+	return evts.Observe(&sentinel.LoggingTipSetObserver{
 		Chain:        s.Chain,
 		StateManager: s.StateManager,
 	})
