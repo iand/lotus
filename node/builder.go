@@ -150,8 +150,6 @@ const (
 
 	SetApiEndpointKey
 
-	SentinelObserverKey
-
 	_nInvokes // keep this last
 )
 
@@ -338,6 +336,7 @@ func Online() Option {
 			Override(new(full.MpoolModuleAPI), From(new(full.MpoolModule))),
 			Override(new(full.StateModuleAPI), From(new(full.StateModule))),
 			Override(new(stmgr.StateManagerAPI), From(new(*stmgr.StateManager))),
+			Override(new(sentinel.SentinelAPI), From(new(sentinel.SentinelUnavailable))),
 
 			Override(RunHelloKey, modules.RunHello),
 			Override(RunChainExchangeKey, modules.RunChainExchange),
@@ -348,8 +347,7 @@ func Online() Option {
 
 		// Sentinel node
 		ApplyIf(isSentinelNode,
-			Override(SentinelObserverKey, modules.SentinelObserver),
-			Override(new(sentinel.SentinelModuleAPI), From(new(*sentinel.SentinelModule))),
+			Override(new(sentinel.SentinelAPI), From(new(sentinel.SentinelModule))),
 		),
 
 		// miner

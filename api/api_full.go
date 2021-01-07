@@ -322,12 +322,12 @@ type FullNode interface {
 	ClientRetrieveTryRestartInsufficientFunds(ctx context.Context, paymentChannel address.Address) error
 
 	// ClientUnimport removes references to the specified file from filestore
-	//ClientUnimport(path string)
+	// ClientUnimport(path string)
 
 	// ClientListImports lists imported files and their root CIDs
 	ClientListImports(ctx context.Context) ([]Import, error)
 
-	//ClientListAsks() []Ask
+	// ClientListAsks() []Ask
 
 	// MethodGroup: State
 	// The State methods are used to query, inspect, and interact with chain state.
@@ -547,6 +547,8 @@ type FullNode interface {
 	// LOTUS_BACKUP_BASE_PATH environment variable set to some path, and that
 	// the path specified when calling CreateBackup is within the base path
 	CreateBackup(ctx context.Context, fpath string) error
+
+	SentinelStartWatch(context.Context, abi.ChainEpoch) error
 }
 
 type FileRef struct {
@@ -930,6 +932,7 @@ type CommPRet struct {
 	Root cid.Cid
 	Size abi.UnpaddedPieceSize
 }
+
 type HeadChange struct {
 	Type string
 	Val  *types.TipSet
