@@ -11,7 +11,7 @@ import (
 	"github.com/filecoin-project/lotus/node/modules/helpers"
 )
 
-func StatsObserver(mctx helpers.MetricsCtx, lc fx.Lifecycle, chainAPI full.ChainModuleAPI, stateAPI full.StateModuleAPI) {
+func SentinelObserver(mctx helpers.MetricsCtx, lc fx.Lifecycle, chainAPI full.ChainModuleAPI, stateAPI full.StateModuleAPI) {
 	api := struct {
 		full.ChainModuleAPI
 		full.StateModuleAPI
@@ -22,14 +22,14 @@ func StatsObserver(mctx helpers.MetricsCtx, lc fx.Lifecycle, chainAPI full.Chain
 
 	lc.Append(fx.Hook{
 		OnStart: func(ctx context.Context) error {
-			log.Infof("Starting StatsObserver")
+			log.Infof("Starting SentinelObserver")
 			evts := events.NewEventsWithConfidence(mctx, api, 10)
-			// Add a logging observer for now but this is where we would add the stats indexer, with access to the API it needs
+			// Add a logging observer for now but this is where we would add the sentinel indexer, with access to the API it needs
 			evts.Observe(&LoggingTipSetObserver{})
 			return nil
 		},
 		OnStop: func(context.Context) error {
-			log.Infof("Stopping StatsObserver")
+			log.Infof("Stopping SentinelObserver")
 			return nil
 		},
 	})

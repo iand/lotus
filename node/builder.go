@@ -149,7 +149,7 @@ const (
 
 	SetApiEndpointKey
 
-	StatsObserverKey
+	SentinelObserverKey
 
 	_nInvokes // keep this last
 )
@@ -168,10 +168,10 @@ type Settings struct {
 
 	nodeType repo.RepoType
 
-	Online bool // Online option applied
-	Config bool // Config option applied
-	Lite   bool // Start node in "lite" mode
-	Stats  bool // Start node in "stats" mode
+	Online   bool // Online option applied
+	Config   bool // Config option applied
+	Lite     bool // Start node in "lite" mode
+	Sentinel bool // Start node in "sentinel" mode
 }
 
 func defaults() []Option {
@@ -245,7 +245,7 @@ func isRepoType(t repo.RepoType) func(s *Settings) bool {
 func Online() Option {
 	isFullNode := func(s *Settings) bool { return s.nodeType == repo.FullNode && !s.Lite }
 	isLiteNode := func(s *Settings) bool { return s.nodeType == repo.FullNode && s.Lite }
-	isStatsNode := func(s *Settings) bool { return s.nodeType == repo.FullNode && s.Stats }
+	isSentinelNode := func(s *Settings) bool { return s.nodeType == repo.FullNode && s.Sentinel }
 
 	return Options(
 		// make sure that online is applied before Config.
@@ -345,9 +345,9 @@ func Online() Option {
 			Override(HandleIncomingBlocksKey, modules.HandleIncomingBlocks),
 		),
 
-		// Stats node
-		ApplyIf(isStatsNode,
-			Override(StatsObserverKey, modules.StatsObserver),
+		// Sentinel node
+		ApplyIf(isSentinelNode,
+			Override(SentinelObserverKey, modules.SentinelObserver),
 		),
 
 		// miner
@@ -586,9 +586,9 @@ func Lite(enable bool) FullOption {
 	}
 }
 
-func Stats(enable bool) FullOption {
+func Sentinel(enable bool) FullOption {
 	return func(s *Settings) error {
-		s.Stats = enable
+		s.Sentinel = enable
 		return nil
 	}
 }

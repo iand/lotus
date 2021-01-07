@@ -57,7 +57,7 @@ const (
 	modeUnknown  daemonMode = 0 // no valid mode could be determined
 	modeStandard daemonMode = 1 // standard mode
 	modeLite     daemonMode = 2 // lite mode, backed by gateway
-	modeStats    daemonMode = 3 // stats collection mode, analyses chain events
+	modeSentinel daemonMode = 3 // stats collection mode, analyses chain events
 )
 
 var daemonStopCmd = &cli.Command{
@@ -129,8 +129,8 @@ var DaemonCmd = &cli.Command{
 			Hidden: true,
 		},
 		&cli.BoolFlag{
-			Name:   "stats",
-			Usage:  "start lotus in stats mode",
+			Name:   "sentinel",
+			Usage:  "start lotus in sentinel mode",
 			Hidden: true,
 		},
 		&cli.StringFlag{
@@ -296,7 +296,7 @@ var DaemonCmd = &cli.Command{
 
 		var api api.FullNode
 		stop, err := node.New(ctx,
-			node.FullAPI(&api, node.Lite(mode == modeLite), node.Stats(mode == modeStats)),
+			node.FullAPI(&api, node.Lite(mode == modeLite), node.Sentinel(mode == modeSentinel)),
 
 			node.Override(new(dtypes.Bootstrapper), isBootstrapper),
 			node.Override(new(dtypes.ShutdownChan), shutdownChan),
@@ -500,15 +500,15 @@ func ImportChain(r repo.Repo, fname string, snapshot bool) (err error) {
 
 func getDaemonMode(cctx *cli.Context) (daemonMode, error) {
 	isLite := cctx.Bool("lite")
-	isStats := cctx.Bool("stats")
+	isSentinel := cctx.Bool("sentinel")
 
 	switch {
-	case !isLite && !isStats:
+	case !isLite && !isSentinel:
 		return modeStandard, nil
-	case isLite && !isStats:
+	case isLite && !isSentinel:
 		return modeLite, nil
-	case !isLite && isStats:
-		return modeStats, nil
+	case !isLite && isSentinel:
+		return modeSentinel, nil
 	default:
 		return modeUnknown, xerrors.Errorf("cannot specify more than one mode")
 	}
