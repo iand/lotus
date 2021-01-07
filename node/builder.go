@@ -10,6 +10,7 @@ import (
 
 	"github.com/filecoin-project/go-state-types/abi"
 	"github.com/filecoin-project/lotus/chain"
+	"github.com/filecoin-project/lotus/chain/events"
 	"github.com/filecoin-project/lotus/chain/exchange"
 	"github.com/filecoin-project/lotus/chain/store"
 	"github.com/filecoin-project/lotus/chain/vm"
@@ -347,7 +348,7 @@ func Online() Option {
 
 		// Sentinel node
 		ApplyIf(isSentinelNode,
-			Override(new(sentinel.EventAPI), From(new(sentinel.EventModule))),
+			Override(new(*events.Events), modules.NewEvents),
 			Override(new(sentinel.SentinelAPI), From(new(sentinel.SentinelModule))),
 		),
 
