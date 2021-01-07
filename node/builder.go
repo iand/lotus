@@ -68,6 +68,7 @@ import (
 	"github.com/filecoin-project/lotus/node/impl"
 	"github.com/filecoin-project/lotus/node/impl/common"
 	"github.com/filecoin-project/lotus/node/impl/full"
+	"github.com/filecoin-project/lotus/node/impl/sentinel"
 	"github.com/filecoin-project/lotus/node/modules"
 	"github.com/filecoin-project/lotus/node/modules/dtypes"
 	"github.com/filecoin-project/lotus/node/modules/helpers"
@@ -348,6 +349,7 @@ func Online() Option {
 		// Sentinel node
 		ApplyIf(isSentinelNode,
 			Override(SentinelObserverKey, modules.SentinelObserver),
+			Override(new(sentinel.SentinelModuleAPI), From(new(*sentinel.SentinelModule))),
 		),
 
 		// miner
