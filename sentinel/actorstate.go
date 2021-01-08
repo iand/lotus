@@ -23,6 +23,7 @@ import (
 	// "github.com/filecoin-project/lotus/lib/bufbstore"
 )
 
+// Not used any more... moved it all to MinerStateExtractionContext
 type ActorInfo struct {
 	// Actor types.Actor
 	// Address address.Address

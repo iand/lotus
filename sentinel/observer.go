@@ -78,6 +78,9 @@ func (o *LoggingTipSetObserver) Apply(ctx context.Context, ts *types.TipSet) err
 		return xerrors.Errorf("load new state tree: %w", err)
 	}
 
+	inFlight := 0
+	results := make(chan bool, len(changes))
+
 	for addrStr, act := range changes {
 		log.Infow("actor change found", "addr", addrStr)
 
@@ -96,27 +99,36 @@ func (o *LoggingTipSetObserver) Apply(ctx context.Context, ts *types.TipSet) err
 			return xerrors.Errorf("creating miner state extraction context: %w", err)
 		}
 
-		// Not used any more... moved it all to MinerStateExtractionContext
-		info := ActorInfo{
-			// Actor: act,
-			// Address: addr,
-			// ParentStateRoot: ts.ParentState(),
-			// Epoch:           ts.Height() + 1, // +1 to align it with what visor reports
-			// TipSet:          pts.Key(),
-			// ParentTipSet: ts,
-		}
+		inFlight++
+		go func(ctx context.Context, ec *MinerStateExtractionContext, ai *APIImpl, results chan bool) {
+			var extractor StorageMinerExtractor
 
-		var extractor StorageMinerExtractor
+			data, err := extractor.Extract(ctx, ActorInfo{}, ec, ai)
+			if err != nil {
+				log.Errorw("miner extraction failed", "error", err.Error(), "addr", addrStr)
+				results <- false
+				return
+			}
 
-		data, err := extractor.Extract(ctx, info, ec, ai)
-		if err != nil {
-			return xerrors.Errorf("extract: %w", err)
-		}
-		log.Infow("extracted miner", "addr", addrStr)
+			log.Infow("miner extraction complete", "addr", addrStr)
 
-		_ = data
+			_ = data
+			results <- true
+		}(ctx, ec, ai, results)
 
 	}
+
+	// Wait for all tasks to complete
+	for inFlight > 0 {
+		select {
+		case <-results:
+			inFlight--
+		case <-ctx.Done():
+			return ctx.Err()
+		}
+	}
+
+	log.Infof("tipset complete")
 
 	return nil
 }
