@@ -460,7 +460,7 @@ func ExtractMinerSectorData(ctx context.Context, ec *MinerStateExtractionContext
 			return nil, nil, nil, nil, xerrors.Errorf("diffing miner sectors: %w", err)
 		}
 
-		log.Infow("miner sector data diff", "addr", ec.Address.String(), "added", len(sectorChanges.Added), "removed", len(sectorChanges.Removed), "removed", len(sectorChanges.Extended))
+		log.Infow("miner sector data diff", "addr", ec.Address.String(), "added", len(sectorChanges.Added), "removed", len(sectorChanges.Removed), "extended", len(sectorChanges.Extended))
 
 		for _, newSector := range sectorChanges.Added {
 			for _, dealID := range newSector.DealIDs {
