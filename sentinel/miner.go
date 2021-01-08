@@ -453,11 +453,14 @@ func ExtractMinerSectorData(ctx context.Context, ec *MinerStateExtractionContext
 		if err != nil {
 			return nil, nil, nil, nil, xerrors.Errorf("diffing miner precommits: %w", err)
 		}
+		log.Infow("miner precommits diff", "addr", ec.Address.String(), "added", len(preCommitChanges.Added), "removed", len(preCommitChanges.Removed))
 
 		sectorChanges, err = miner.DiffSectors(ec.PrevState, ec.CurrState)
 		if err != nil {
 			return nil, nil, nil, nil, xerrors.Errorf("diffing miner sectors: %w", err)
 		}
+
+		log.Infow("miner sector data diff", "addr", ec.Address.String(), "added", len(sectorChanges.Added), "removed", len(sectorChanges.Removed), "removed", len(sectorChanges.Extended))
 
 		for _, newSector := range sectorChanges.Added {
 			for _, dealID := range newSector.DealIDs {
@@ -641,6 +644,9 @@ func extractMinerSectorEvents(ctx context.Context, node ActorStateAPI, a ActorIn
 		if err != nil {
 			return nil, xerrors.Errorf("fetching miners removed sectors: %w", err)
 		}
+
+		log.Infow("miner removed sectors", "count", len(removedSectors))
+
 		rmExpireIndex := make(map[uint64]abi.ChainEpoch)
 		for _, rm := range removedSectors {
 			rmExpireIndex[uint64(rm.SectorNumber)] = rm.Expiration
@@ -778,6 +784,8 @@ func extractMinerPartitionsDiff(ctx context.Context, ec *MinerStateExtractionCon
 	if dlDiff == nil {
 		return nil, nil
 	}
+
+	log.Infow("miner deadlines diff", "count", len(dlDiff))
 
 	removed := bitfield.New()
 	faulted := bitfield.New()
