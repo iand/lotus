@@ -110,8 +110,6 @@ func (o *LoggingTipSetObserver) Apply(ctx context.Context, ts *types.TipSet) err
 				return
 			}
 
-			log.Infow("miner extraction complete", "addr", addrStr)
-
 			_ = data
 			results <- true
 		}(ctx, addrStr, ec, ai, results)
@@ -123,6 +121,7 @@ func (o *LoggingTipSetObserver) Apply(ctx context.Context, ts *types.TipSet) err
 		select {
 		case <-results:
 			inFlight--
+			log.Infow("extraction complete", "remaining", inFlight)
 		case <-ctx.Done():
 			return ctx.Err()
 		}
