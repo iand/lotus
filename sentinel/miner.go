@@ -2,6 +2,7 @@ package sentinel
 
 import (
 	"context"
+	"time"
 
 	"github.com/filecoin-project/go-address"
 	"github.com/filecoin-project/go-bitfield"
@@ -180,30 +181,37 @@ type MinerTaskResult struct {
 type StorageMinerExtractor struct{}
 
 func (m StorageMinerExtractor) Extract(ctx context.Context, a ActorInfo, ec *MinerStateExtractionContext, node ActorStateAPI) (*MinerTaskResult, error) {
+	started := time.Now()
+
 	minerInfoModel, err := ExtractMinerInfo(a, ec)
 	if err != nil {
 		return nil, xerrors.Errorf("extracting miner info: %w", err)
 	}
+	log.Infow("extracted miner info", "addr", ec.Address.String(), "elapsed", time.Since(started))
 
 	lockedFundsModel, err := ExtractMinerLockedFunds(a, ec)
 	if err != nil {
 		return nil, xerrors.Errorf("extracting miner locked funds: %w", err)
 	}
+	log.Infow("extracted miner locked funds", "addr", ec.Address.String(), "elapsed", time.Since(started))
 
 	feeDebtModel, err := ExtractMinerFeeDebt(a, ec)
 	if err != nil {
 		return nil, xerrors.Errorf("extracting miner fee debt: %w", err)
 	}
+	log.Infow("extracted miner fee debt", "addr", ec.Address.String(), "elapsed", time.Since(started))
 
 	currDeadlineModel, err := ExtractMinerCurrentDeadlineInfo(a, ec)
 	if err != nil {
 		return nil, xerrors.Errorf("extracting miner current deadline info: %w", err)
 	}
+	log.Infow("extracted miner current deadline info", "addr", ec.Address.String(), "elapsed", time.Since(started))
 
 	preCommitModel, sectorModel, sectorDealsModel, sectorEventsModel, err := ExtractMinerSectorData(ctx, ec, a, node)
 	if err != nil {
 		return nil, xerrors.Errorf("extracting miner sector changes: %w", err)
 	}
+	log.Infow("extracted miner sector data", "addr", ec.Address.String(), "elapsed", time.Since(started))
 
 	// posts, err := ExtractMinerPoSts(ctx, &a, ec, node)
 	// if err != nil {
@@ -261,8 +269,7 @@ func NewMinerStateExtractionContext(ctx context.Context, height abi.ChainEpoch, 
 }
 
 type MinerStateExtractionContext struct {
-	Address address.Address
-
+	Address       address.Address
 	PrevState     miner.State
 	PrevStateRoot cid.Cid
 
