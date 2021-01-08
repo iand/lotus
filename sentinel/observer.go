@@ -100,7 +100,7 @@ func (o *LoggingTipSetObserver) Apply(ctx context.Context, ts *types.TipSet) err
 		}
 
 		inFlight++
-		go func(ctx context.Context, ec *MinerStateExtractionContext, ai *APIImpl, results chan bool) {
+		go func(ctx context.Context, addrStr string, ec *MinerStateExtractionContext, ai *APIImpl, results chan bool) {
 			var extractor StorageMinerExtractor
 
 			data, err := extractor.Extract(ctx, ActorInfo{}, ec, ai)
@@ -114,7 +114,7 @@ func (o *LoggingTipSetObserver) Apply(ctx context.Context, ts *types.TipSet) err
 
 			_ = data
 			results <- true
-		}(ctx, ec, ai, results)
+		}(ctx, addrStr, ec, ai, results)
 
 	}
 
