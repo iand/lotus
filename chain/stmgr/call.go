@@ -121,7 +121,6 @@ func (sm *StateManager) Call(ctx context.Context, msg *types.Message, ts *types.
 		Error:          errs,
 		Duration:       ret.Duration,
 	}, nil
-
 }
 
 func (sm *StateManager) CallWithGas(ctx context.Context, msg *types.Message, priorMsgs []types.ChainMsg, ts *types.TipSet) (*api.InvocResult, error) {
@@ -244,24 +243,31 @@ func (sm *StateManager) CallWithGas(ctx context.Context, msg *types.Message, pri
 var errHaltExecution = fmt.Errorf("halt")
 
 func (sm *StateManager) Replay(ctx context.Context, ts *types.TipSet, mcid cid.Cid) (*types.Message, *vm.ApplyRet, error) {
-	var outm *types.Message
-	var outr *vm.ApplyRet
+	var finder messageFinder
 
-	_, _, err := sm.computeTipSetState(ctx, ts, func(c cid.Cid, m *types.Message, ret *vm.ApplyRet) error {
-		if c == mcid {
-			outm = m
-			outr = ret
-			return errHaltExecution
-		}
-		return nil
-	})
+	_, _, err := sm.ComputeTipSetState(ctx, ts, &finder)
 	if err != nil && err != errHaltExecution {
 		return nil, nil, xerrors.Errorf("unexpected error during execution: %w", err)
 	}
 
-	if outr == nil {
+	if finder.outr == nil {
 		return nil, nil, xerrors.Errorf("given message not found in tipset")
 	}
 
-	return outm, outr, nil
+	return finder.outm, finder.outr, nil
+}
+
+type messageFinder struct {
+	mcid cid.Cid // the message cid to find
+	outm *types.Message
+	outr *vm.ApplyRet
+}
+
+func (m *messageFinder) MessageApplied(ctx context.Context, mcid cid.Cid, msg *types.Message, ret *vm.ApplyRet, implicit bool) error {
+	if m.mcid == mcid {
+		m.outm = msg
+		m.outr = ret
+		return errHaltExecution // message was found, no need to continue
+	}
+	return nil
 }

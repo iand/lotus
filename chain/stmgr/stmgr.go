@@ -193,7 +193,7 @@ func (sm *StateManager) TipSetState(ctx context.Context, ts *types.TipSet) (st c
 		return ts.Blocks()[0].ParentStateRoot, ts.Blocks()[0].ParentMessageReceipts, nil
 	}
 
-	st, rec, err = sm.computeTipSetState(ctx, ts, nil)
+	st, rec, err = sm.ComputeTipSetState(ctx, ts, nil)
 	if err != nil {
 		return cid.Undef, cid.Undef, err
 	}
@@ -201,40 +201,45 @@ func (sm *StateManager) TipSetState(ctx context.Context, ts *types.TipSet) (st c
 	return st, rec, nil
 }
 
-func traceFunc(trace *[]*api.InvocResult) func(mcid cid.Cid, msg *types.Message, ret *vm.ApplyRet) error {
-	return func(mcid cid.Cid, msg *types.Message, ret *vm.ApplyRet) error {
-		ir := &api.InvocResult{
-			MsgCid:         mcid,
-			Msg:            msg,
-			MsgRct:         &ret.MessageReceipt,
-			ExecutionTrace: ret.ExecutionTrace,
-			Duration:       ret.Duration,
-		}
-		if ret.ActorErr != nil {
-			ir.Error = ret.ActorErr.Error()
-		}
-		if ret.GasCosts != nil {
-			ir.GasCost = MakeMsgGasCost(msg, ret)
-		}
-		*trace = append(*trace, ir)
-		return nil
-	}
-}
-
 func (sm *StateManager) ExecutionTrace(ctx context.Context, ts *types.TipSet) (cid.Cid, []*api.InvocResult, error) {
-	var trace []*api.InvocResult
-	st, _, err := sm.computeTipSetState(ctx, ts, traceFunc(&trace))
+	var tracer messageTracer
+	st, _, err := sm.ComputeTipSetState(ctx, ts, &tracer)
 	if err != nil {
 		return cid.Undef, nil, err
 	}
 
-	return st, trace, nil
+	return st, tracer.trace, nil
 }
 
-type ExecCallback func(cid.Cid, *types.Message, *vm.ApplyRet) error
+type ExecMonitor interface {
 
-func (sm *StateManager) ApplyBlocks(ctx context.Context, parentEpoch abi.ChainEpoch, pstate cid.Cid, bms []store.BlockMessages, epoch abi.ChainEpoch, r vm.Rand, cb ExecCallback, baseFee abi.TokenAmount, ts *types.TipSet) (cid.Cid, cid.Cid, error) {
+	// MessageApplied is called after a message has been applied. Returning an error will halt execution of any further messages.
+	MessageApplied(ctx context.Context, mcid cid.Cid, msg *types.Message, ret *vm.ApplyRet, implicit bool) error
+}
 
+type messageTracer struct {
+	trace []*api.InvocResult
+}
+
+func (m *messageTracer) MessageApplied(ctx context.Context, mcid cid.Cid, msg *types.Message, ret *vm.ApplyRet, implicit bool) error {
+	ir := &api.InvocResult{
+		MsgCid:         mcid,
+		Msg:            msg,
+		MsgRct:         &ret.MessageReceipt,
+		ExecutionTrace: ret.ExecutionTrace,
+		Duration:       ret.Duration,
+	}
+	if ret.ActorErr != nil {
+		ir.Error = ret.ActorErr.Error()
+	}
+	if ret.GasCosts != nil {
+		ir.GasCost = MakeMsgGasCost(msg, ret)
+	}
+	m.trace = append(m.trace, ir)
+	return nil
+}
+
+func (sm *StateManager) ApplyBlocks(ctx context.Context, parentEpoch abi.ChainEpoch, pstate cid.Cid, bms []store.BlockMessages, epoch abi.ChainEpoch, r vm.Rand, em ExecMonitor, baseFee abi.TokenAmount, ts *types.TipSet) (cid.Cid, cid.Cid, error) {
 	makeVmWithBaseState := func(base cid.Cid) (*vm.VM, error) {
 		vmopt := &vm.VMOpts{
 			StateBase:      base,
@@ -257,7 +262,6 @@ func (sm *StateManager) ApplyBlocks(ctx context.Context, parentEpoch abi.ChainEp
 	}
 
 	runCron := func(epoch abi.ChainEpoch) error {
-
 		cronMsg := &types.Message{
 			To:         cron.Address,
 			From:       builtin.SystemActorAddr,
@@ -273,8 +277,8 @@ func (sm *StateManager) ApplyBlocks(ctx context.Context, parentEpoch abi.ChainEp
 		if err != nil {
 			return err
 		}
-		if cb != nil {
-			if err := cb(cronMsg.Cid(), cronMsg, ret); err != nil {
+		if em != nil {
+			if err := em.MessageApplied(ctx, cronMsg.Cid(), cronMsg, ret, true); err != nil {
 				return xerrors.Errorf("callback failed on cron message: %w", err)
 			}
 		}
@@ -300,7 +304,7 @@ func (sm *StateManager) ApplyBlocks(ctx context.Context, parentEpoch abi.ChainEp
 
 		// handle state forks
 		// XXX: The state tree
-		newState, err := sm.handleStateForks(ctx, pstate, i, cb, ts)
+		newState, err := sm.handleStateForks(ctx, pstate, i, em, ts)
 		if err != nil {
 			return cid.Undef, cid.Undef, xerrors.Errorf("error handling state forks: %w", err)
 		}
@@ -336,8 +340,8 @@ func (sm *StateManager) ApplyBlocks(ctx context.Context, parentEpoch abi.ChainEp
 			gasReward = big.Add(gasReward, r.GasCosts.MinerTip)
 			penalty = big.Add(penalty, r.GasCosts.MinerPenalty)
 
-			if cb != nil {
-				if err := cb(cm.Cid(), m, r); err != nil {
+			if em != nil {
+				if err := em.MessageApplied(ctx, cm.Cid(), m, r, false); err != nil {
 					return cid.Undef, cid.Undef, err
 				}
 			}
@@ -369,8 +373,8 @@ func (sm *StateManager) ApplyBlocks(ctx context.Context, parentEpoch abi.ChainEp
 		if actErr != nil {
 			return cid.Undef, cid.Undef, xerrors.Errorf("failed to apply reward message for miner %s: %w", b.Miner, actErr)
 		}
-		if cb != nil {
-			if err := cb(rwMsg.Cid(), rwMsg, ret); err != nil {
+		if em != nil {
+			if err := em.MessageApplied(ctx, rwMsg.Cid(), rwMsg, ret, true); err != nil {
 				return cid.Undef, cid.Undef, xerrors.Errorf("callback failed on reward message: %w", err)
 			}
 		}
@@ -407,8 +411,8 @@ func (sm *StateManager) ApplyBlocks(ctx context.Context, parentEpoch abi.ChainEp
 	return st, rectroot, nil
 }
 
-func (sm *StateManager) computeTipSetState(ctx context.Context, ts *types.TipSet, cb ExecCallback) (cid.Cid, cid.Cid, error) {
-	ctx, span := trace.StartSpan(ctx, "computeTipSetState")
+func (sm *StateManager) ComputeTipSetState(ctx context.Context, ts *types.TipSet, em ExecMonitor) (cid.Cid, cid.Cid, error) {
+	ctx, span := trace.StartSpan(ctx, "ComputeTipSetState")
 	defer span.End()
 
 	blks := ts.Blocks()
@@ -443,7 +447,7 @@ func (sm *StateManager) computeTipSetState(ctx context.Context, ts *types.TipSet
 
 	baseFee := blks[0].ParentBaseFee
 
-	return sm.ApplyBlocks(ctx, parentEpoch, pstate, blkmsgs, blks[0].Height, r, cb, baseFee, ts)
+	return sm.ApplyBlocks(ctx, parentEpoch, pstate, blkmsgs, blks[0].Height, r, em, baseFee, ts)
 }
 
 func (sm *StateManager) parentState(ts *types.TipSet) cid.Cid {
@@ -657,7 +661,6 @@ func (sm *StateManager) SearchForMessage(ctx context.Context, mcid cid.Cid) (*ty
 	}
 
 	fts, r, foundMsg, err := sm.searchBackForMsg(ctx, head, msg, LookbackNoLimit)
-
 	if err != nil {
 		log.Warnf("failed to look back through chain for message %s", mcid)
 		return nil, nil, cid.Undef, err
@@ -895,7 +898,6 @@ func (sm *StateManager) SetVMConstructor(nvm func(context.Context, *vm.VMOpts) (
 
 // sets up information about the vesting schedule
 func (sm *StateManager) setupGenesisVestingSchedule(ctx context.Context) error {
-
 	gb, err := sm.cs.GetGenesis()
 	if err != nil {
 		return xerrors.Errorf("getting genesis block: %w", err)
@@ -969,7 +971,6 @@ func (sm *StateManager) setupGenesisVestingSchedule(ctx context.Context) error {
 
 // sets up information about the vesting schedule post the ignition upgrade
 func (sm *StateManager) setupPostIgnitionVesting(ctx context.Context) error {
-
 	totalsByEpoch := make(map[abi.ChainEpoch]abi.TokenAmount)
 
 	// 6 months
@@ -1012,7 +1013,6 @@ func (sm *StateManager) setupPostIgnitionVesting(ctx context.Context) error {
 
 // sets up information about the vesting schedule post the calico upgrade
 func (sm *StateManager) setupPostCalicoVesting(ctx context.Context) error {
-
 	totalsByEpoch := make(map[abi.ChainEpoch]abi.TokenAmount)
 
 	// 0 days
@@ -1148,7 +1148,6 @@ func getFilPowerLocked(ctx context.Context, st *state.StateTree) (abi.TokenAmoun
 }
 
 func (sm *StateManager) GetFilLocked(ctx context.Context, st *state.StateTree) (abi.TokenAmount, error) {
-
 	filMarketLocked, err := getFilMarketLocked(ctx, st)
 	if err != nil {
 		return big.Zero(), xerrors.Errorf("failed to get filMarketLocked: %w", err)
@@ -1323,7 +1322,6 @@ func (sm *StateManager) GetCirculatingSupply(ctx context.Context, height abi.Cha
 
 		return nil
 	})
-
 	if err != nil {
 		return types.EmptyInt, err
 	}

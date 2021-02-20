@@ -5,6 +5,7 @@ go 1.15
 require (
 	contrib.go.opencensus.io/exporter/jaeger v0.1.0
 	contrib.go.opencensus.io/exporter/prometheus v0.1.0
+	github.com/AndreasBriese/bbloom v0.0.0-20190825152654-46b345b51c96 // indirect
 	github.com/BurntSushi/toml v0.3.1
 	github.com/GeertJohan/go.rice v1.0.0
 	github.com/Gurpartap/async v0.0.0-20180927173644-4f7f499dd9ee
@@ -15,6 +16,7 @@ require (
 	github.com/chzyer/readline v0.0.0-20180603132655-2972be24d48e
 	github.com/cockroachdb/pebble v0.0.0-20201001221639-879f3bfeef07
 	github.com/coreos/go-systemd/v22 v22.0.0
+	github.com/davidlazar/go-crypto v0.0.0-20200604182044-b73af7476f6c // indirect
 	github.com/detailyang/go-fallocate v0.0.0-20180908115635-432fa640bd2e
 	github.com/dgraph-io/badger/v2 v2.2007.2
 	github.com/docker/go-units v0.4.0
@@ -23,10 +25,9 @@ require (
 	github.com/dustin/go-humanize v1.0.0
 	github.com/elastic/go-sysinfo v1.3.0
 	github.com/elastic/gosigar v0.12.0
-	github.com/fatih/color v1.9.0
+	github.com/fatih/color v1.10.0
 	github.com/filecoin-project/filecoin-ffi v0.30.4-0.20200910194244-f640612a1a1f
 	github.com/filecoin-project/go-address v0.0.5-0.20201103152444-f2023ef3f5bb
-	github.com/filecoin-project/go-amt-ipld/v2 v2.1.1-0.20201006184820-924ee87a1349 // indirect
 	github.com/filecoin-project/go-bitfield v0.2.3-0.20201110211213-fe2c1862e816
 	github.com/filecoin-project/go-cbor-util v0.0.0-20191219014500-08c40a1e63a2
 	github.com/filecoin-project/go-commp-utils v0.0.0-20201119054358-b88f7a96a434
@@ -93,7 +94,7 @@ require (
 	github.com/ipld/go-car v0.1.1-0.20201119040415-11b6074b6d4d
 	github.com/ipld/go-ipld-prime v0.5.1-0.20201021195245-109253e8a018
 	github.com/kelseyhightower/envconfig v1.4.0
-	github.com/lib/pq v1.7.0
+	github.com/lib/pq v1.8.0
 	github.com/libp2p/go-buffer-pool v0.0.2
 	github.com/libp2p/go-eventbus v0.2.1
 	github.com/libp2p/go-libp2p v0.12.0
@@ -112,7 +113,6 @@ require (
 	github.com/libp2p/go-libp2p-tls v0.1.3
 	github.com/libp2p/go-libp2p-yamux v0.4.1
 	github.com/libp2p/go-maddr-filter v0.1.0
-	github.com/mattn/go-colorable v0.1.6 // indirect
 	github.com/minio/blake2b-simd v0.0.0-20160723061019-3f5f724cb5b1
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/multiformats/go-base32 v0.0.3
@@ -120,11 +120,15 @@ require (
 	github.com/multiformats/go-multiaddr-dns v0.2.0
 	github.com/multiformats/go-multibase v0.0.3
 	github.com/multiformats/go-multihash v0.0.14
+	github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e // indirect
+	github.com/onsi/ginkgo v1.14.1 // indirect
+	github.com/onsi/gomega v1.10.2 // indirect
 	github.com/opentracing/opentracing-go v1.2.0
 	github.com/polydawn/refmt v0.0.0-20190809202753-05966cbd336a
 	github.com/prometheus/client_golang v1.6.0
 	github.com/raulk/clock v1.1.0
 	github.com/raulk/go-watchdog v0.0.1
+	github.com/stretchr/objx v0.2.0 // indirect
 	github.com/stretchr/testify v1.6.1
 	github.com/supranational/blst v0.1.1
 	github.com/syndtr/goleveldb v1.0.0
@@ -140,11 +144,15 @@ require (
 	go.uber.org/fx v1.9.0
 	go.uber.org/multierr v1.6.0
 	go.uber.org/zap v1.16.0
+	golang.org/x/exp v0.0.0-20200924195034-c827fd4f18b9 // indirect
 	golang.org/x/net v0.0.0-20201021035429-f5854403a974
 	golang.org/x/sync v0.0.0-20201020160332-67f06af15bc9
-	golang.org/x/sys v0.0.0-20200930185726-fdedc70b468f
+	golang.org/x/sys v0.0.0-20201101102859-da207088b7d1
 	golang.org/x/time v0.0.0-20191024005414-555d28b269f0
 	golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1
+	google.golang.org/api v0.32.0 // indirect
+	google.golang.org/grpc v1.32.0 // indirect
+	gopkg.in/check.v1 v1.0.0-20200227125254-8fa46927fb4f // indirect
 	gopkg.in/cheggaaa/pb.v1 v1.0.28
 	gotest.tools v2.2.0+incompatible
 	launchpad.net/gocheck v0.0.0-20140225173054-000000000087 // indirect

@@ -10,6 +10,7 @@ import (
 
 	"github.com/filecoin-project/go-state-types/abi"
 	"github.com/filecoin-project/lotus/chain"
+	"github.com/filecoin-project/lotus/chain/events"
 	"github.com/filecoin-project/lotus/chain/exchange"
 	"github.com/filecoin-project/lotus/chain/store"
 	"github.com/filecoin-project/lotus/chain/vm"
@@ -68,6 +69,7 @@ import (
 	"github.com/filecoin-project/lotus/node/impl"
 	"github.com/filecoin-project/lotus/node/impl/common"
 	"github.com/filecoin-project/lotus/node/impl/full"
+	"github.com/filecoin-project/lotus/node/impl/sentinel"
 	"github.com/filecoin-project/lotus/node/modules"
 	"github.com/filecoin-project/lotus/node/modules/dtypes"
 	"github.com/filecoin-project/lotus/node/modules/helpers"
@@ -166,9 +168,10 @@ type Settings struct {
 
 	nodeType repo.RepoType
 
-	Online bool // Online option applied
-	Config bool // Config option applied
-	Lite   bool // Start node in "lite" mode
+	Online   bool // Online option applied
+	Config   bool // Config option applied
+	Lite     bool // Start node in "lite" mode
+	Sentinel bool // Start node in "sentinel" mode
 }
 
 func defaults() []Option {
@@ -234,15 +237,15 @@ func libp2p() Option {
 	)
 }
 
-func isType(t repo.RepoType) func(s *Settings) bool {
+func isRepoType(t repo.RepoType) func(s *Settings) bool {
 	return func(s *Settings) bool { return s.nodeType == t }
 }
 
 // Online sets up basic libp2p node
 func Online() Option {
-	isFullOrLiteNode := func(s *Settings) bool { return s.nodeType == repo.FullNode }
 	isFullNode := func(s *Settings) bool { return s.nodeType == repo.FullNode && !s.Lite }
 	isLiteNode := func(s *Settings) bool { return s.nodeType == repo.FullNode && s.Lite }
+	isSentinelNode := func(s *Settings) bool { return s.nodeType == repo.FullNode && s.Sentinel }
 
 	return Options(
 		// make sure that online is applied before Config.
@@ -258,7 +261,7 @@ func Online() Option {
 		Override(new(*slashfilter.SlashFilter), modules.NewSlashFilter),
 
 		// Full node or lite node
-		ApplyIf(isFullOrLiteNode,
+		ApplyIf(isRepoType(repo.FullNode),
 			// TODO: Fix offline mode
 
 			Override(new(dtypes.BootstrapPeers), modules.BuiltinBootstrap),
@@ -334,6 +337,7 @@ func Online() Option {
 			Override(new(full.MpoolModuleAPI), From(new(full.MpoolModule))),
 			Override(new(full.StateModuleAPI), From(new(full.StateModule))),
 			Override(new(stmgr.StateManagerAPI), From(new(*stmgr.StateManager))),
+			Override(new(sentinel.SentinelAPI), From(new(sentinel.SentinelUnavailable))),
 
 			Override(RunHelloKey, modules.RunHello),
 			Override(RunChainExchangeKey, modules.RunChainExchange),
@@ -342,8 +346,14 @@ func Online() Option {
 			Override(HandleIncomingBlocksKey, modules.HandleIncomingBlocks),
 		),
 
+		// Sentinel node
+		ApplyIf(isSentinelNode,
+			Override(new(*events.Events), modules.NewEvents),
+			Override(new(sentinel.SentinelAPI), From(new(sentinel.SentinelModule))),
+		),
+
 		// miner
-		ApplyIf(isType(repo.StorageMiner),
+		ApplyIf(isRepoType(repo.StorageMiner),
 			Override(new(api.Common), From(new(common.CommonAPI))),
 			Override(new(sectorstorage.StorageAuth), modules.StorageAuth),
 
@@ -563,8 +573,8 @@ func Repo(r repo.Repo) Option {
 
 			Override(new(*dtypes.APIAlg), modules.APISecret),
 
-			ApplyIf(isType(repo.FullNode), ConfigFullNode(c)),
-			ApplyIf(isType(repo.StorageMiner), ConfigStorageMiner(c)),
+			ApplyIf(isRepoType(repo.FullNode), ConfigFullNode(c)),
+			ApplyIf(isRepoType(repo.StorageMiner), ConfigStorageMiner(c)),
 		)(settings)
 	}
 }
@@ -574,6 +584,13 @@ type FullOption = Option
 func Lite(enable bool) FullOption {
 	return func(s *Settings) error {
 		s.Lite = enable
+		return nil
+	}
+}
+
+func Sentinel(enable bool) FullOption {
+	return func(s *Settings) error {
+		s.Sentinel = enable
 		return nil
 	}
 }

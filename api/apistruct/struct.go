@@ -269,6 +269,8 @@ type FullNodeStruct struct {
 		PaychVoucherSubmit          func(context.Context, address.Address, *paych.SignedVoucher, []byte, []byte) (cid.Cid, error)             `perm:"sign"`
 
 		CreateBackup func(ctx context.Context, fpath string) error `perm:"admin"`
+
+		SentinelStartWatch func(context.Context, abi.ChainEpoch) error `perm:"read"`
 	}
 }
 
@@ -1238,6 +1240,10 @@ func (c *FullNodeStruct) CreateBackup(ctx context.Context, fpath string) error {
 	return c.Internal.CreateBackup(ctx, fpath)
 }
 
+func (c *FullNodeStruct) SentinelStartWatch(ctx context.Context, confidence abi.ChainEpoch) error {
+	return c.Internal.SentinelStartWatch(ctx, confidence)
+}
+
 // StorageMinerStruct
 
 func (c *StorageMinerStruct) ActorAddress(ctx context.Context) (address.Address, error) {
@@ -1804,9 +1810,11 @@ func (c *WalletStruct) WalletDelete(ctx context.Context, addr address.Address) e
 	return c.Internal.WalletDelete(ctx, addr)
 }
 
-var _ api.Common = &CommonStruct{}
-var _ api.FullNode = &FullNodeStruct{}
-var _ api.StorageMiner = &StorageMinerStruct{}
-var _ api.WorkerAPI = &WorkerStruct{}
-var _ api.GatewayAPI = &GatewayStruct{}
-var _ api.WalletAPI = &WalletStruct{}
+var (
+	_ api.Common       = &CommonStruct{}
+	_ api.FullNode     = &FullNodeStruct{}
+	_ api.StorageMiner = &StorageMinerStruct{}
+	_ api.WorkerAPI    = &WorkerStruct{}
+	_ api.GatewayAPI   = &GatewayStruct{}
+	_ api.WalletAPI    = &WalletStruct{}
+)
